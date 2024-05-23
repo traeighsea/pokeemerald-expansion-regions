@@ -12,7 +12,7 @@
 ///   map.json and if an id is found for an id in the encounter list, a wild_encounters.json 
 ///   is generated and output to that map dir and the entry is removed from the master list.
 /// Once the script completes there may be some maps not found, the remaining entries in the json
-///   then gets stored as wild_encounters_header.json.
+///   then gets stored as wild_encounters_common.json.
 int main(int argc, char *argv[])
 {
     if (argc <= 2) {
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 
     // Save remaining json
     std::filesystem::path dir_path(all_wild_encounters_filepath);
-    dir_path.replace_filename("wild_encounters_header");
+    dir_path.replace_filename("wild_encounters_common");
     dir_path.replace_extension("json");
 
     std::ofstream json_out(dir_path);
