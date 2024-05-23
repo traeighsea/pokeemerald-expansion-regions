@@ -40,14 +40,17 @@ void SeparateIndividualMaps(nlohmann::ordered_json& all_wild_encounters,
             }
         }
 
-        // Set the path to the wild encounters
-        std::filesystem::path dir_path(map_id.second);
-        dir_path.replace_filename("wild_encounters");
-        dir_path.replace_extension("json");
+        // If we have data, serialize, otherwise don't bother
+        if (!individual_json["wild_encounter_groups"].empty()) {
+            // Set the path to the wild encounters
+            std::filesystem::path dir_path(map_id.second);
+            dir_path.replace_filename("wild_encounters");
+            dir_path.replace_extension("json");
 
-        // Serialize/save the json data to the map directory
-        std::ofstream individual_json_stream(dir_path);
-        individual_json_stream << std::setw(2) << individual_json << std::endl;
+            // Serialize/save the json data to the map directory
+            std::ofstream individual_json_stream(dir_path);
+            individual_json_stream << std::setw(2) << individual_json << std::endl;
+        }
     }
 }
 
