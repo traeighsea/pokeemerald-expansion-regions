@@ -1,5 +1,6 @@
 #include "jsonamal.h"
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -35,7 +36,61 @@ void ProcessSimple(nlohmann::ordered_json& combined_jsons, std::vector<const std
     }
 }
 
-void ProcessEncounters(nlohmann::ordered_json& combined_jsons, std::vector<const std::string>& jsonpaths) {
+
+void MergeEncounters(nlohmann::ordered_json& combined_jsons, nlohmann::ordered_json& individual_json) {
+    for (auto& individual_encounter: individual_json["encounters"]) {
+        std::string map = individual_encounter["map"].template get<std::string>();
+        std::string base_label = individual_encounter["base_label"].template get<std::string>();
+        bool found = false;
+        for (auto &combined_encounter: combined_jsons["encounters"]) {
+            // If the maps match, this is the same encounter, so we should merge the data accordingly
+            if (combined_encounter["map"].template get<std::string>() == map && 
+                combined_encounter["base_label"].template get<std::string>() == base_label) {
+                // Merge the encounters
+                combined_encounter.update(individual_encounter, true);
+                
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            combined_jsons["encounters"].push_back(individual_encounter);
+        }
+    }
+}
+
+void MergeWildEncounterGroups(nlohmann::ordered_json& combined_jsons, nlohmann::ordered_json& individual_json, bool override_keys) {
+    for (auto& individual_encounter_group: individual_json["wild_encounter_groups"]) {
+        std::string label = individual_encounter_group["label"].template get<std::string>();
+        bool found = false;
+        for (auto &combined_encounter_group: combined_jsons["wild_encounter_groups"]) {
+            // If the labels match, this is the same wild encounter group, so we should merge the data accordingly
+            if (combined_encounter_group["label"].template get<std::string>() == label) {
+                if (override_keys) {
+                    // Overwrite the encounters, completely replacing them
+                    combined_encounter_group.update(individual_encounter_group, false);
+                } else {
+                    // Merge the encounters
+                    MergeEncounters(combined_encounter_group, individual_encounter_group);
+
+                    // Merge the rest of the data, but first lets remove the key that we already have set; encounters
+                    individual_encounter_group.erase("encounters");
+                    combined_encounter_group.update(individual_encounter_group, true);
+                }
+                
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            combined_jsons["wild_encounter_groups"].push_back(individual_encounter_group);
+        }
+    }
+}
+
+void ProcessEncounters(nlohmann::ordered_json& combined_jsons, 
+                       std::vector<const std::string>& jsonpaths,
+                       bool override_keys = false) {
     // Iterate through our json paths to add each to the combined_jsons
     for (const auto& jsonpath: jsonpaths) {
         std::ifstream individual_json_stream(jsonpath);
@@ -46,23 +101,7 @@ void ProcessEncounters(nlohmann::ordered_json& combined_jsons, std::vector<const
         if (combined_jsons.empty()) {
             combined_jsons = individual_json;
         } else {
-            for (auto& individual_encounter_group: individual_json["wild_encounter_groups"]) {
-                std::string label = individual_encounter_group["label"].template get<std::string>();
-                bool found = false;
-                for (auto &combined_encounter_group: combined_jsons["wild_encounter_groups"]) {
-                    // If the labels match, this is the same wild encounter group, so we should merge the data accordingly
-                    if (combined_encounter_group["label"].template get<std::string>() == label) {
-                        for (auto& encounter: individual_encounter_group["encounters"]) {
-                            combined_encounter_group["encounters"].push_back(encounter);
-                        }
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    combined_jsons["wild_encounter_groups"].push_back(individual_encounter_group);
-                }
-            }
+            MergeWildEncounterGroups(combined_jsons, individual_json, override_keys);
         }
     }
 }
