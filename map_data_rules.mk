@@ -7,6 +7,7 @@ MAP_DIRS := $(dir $(wildcard $(MAPS_DIR)/*/map.json))
 MAP_CONNECTIONS := $(patsubst $(MAPS_DIR)/%/,$(MAPS_DIR)/%/connections.inc,$(MAP_DIRS))
 MAP_EVENTS := $(patsubst $(MAPS_DIR)/%/,$(MAPS_DIR)/%/events.inc,$(MAP_DIRS))
 MAP_HEADERS := $(patsubst $(MAPS_DIR)/%/,$(MAPS_DIR)/%/header.inc,$(MAP_DIRS))
+MAP_JSONS := $(wildcard $(MAPS_DIR)/*/map.json)
 MAP_WILD_ENCOUNTERS := $(wildcard $(MAPS_DIR)/*/wild_encounters.json)
 
 $(DATA_ASM_BUILDDIR)/maps.o: $(DATA_ASM_SUBDIR)/maps.s $(LAYOUTS_DIR)/layouts.inc $(LAYOUTS_DIR)/layouts_table.inc $(MAPS_DIR)/headers.inc $(MAPS_DIR)/groups.inc $(MAPS_DIR)/connections.inc $(MAP_CONNECTIONS) $(MAP_HEADERS)
@@ -31,8 +32,10 @@ $(LAYOUTS_DIR)/layouts.inc: $(LAYOUTS_DIR)/layouts.json
 $(LAYOUTS_DIR)/layouts_table.inc: $(LAYOUTS_DIR)/layouts.inc ;
 include/constants/layouts.h: $(LAYOUTS_DIR)/layouts_table.inc ;
 
-$(DATA_ASM_SUBDIR)/wild_encounters.json: $(MAPS_DIR)/wild_encounters_common.json
-	$(JSONAMAL) encounters $(MAPS_DIR)/wild_encounters_common.json $(MAP_WILD_ENCOUNTERS)
+ifeq ($(OPTION_INDIVIDUAL_MAP_WILD_ENCOUNTERS),true)
+$(DATA_ASM_SUBDIR)/wild_encounters.json: $(DATA_ASM_SUBDIR)/wild_encounters_common.json
+	$(JSONAMAL) encounters $(DATA_ASM_SUBDIR)/wild_encounters.json $(DATA_ASM_SUBDIR)/wild_encounters_common.json $(MAP_WILD_ENCOUNTERS)
+endif
 
 # This is a migration script you can run to go from a single list to wild encounters per map dir
 .PHONY: run-separate-wild-encounters
