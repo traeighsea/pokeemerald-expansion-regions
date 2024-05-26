@@ -1,3 +1,5 @@
+#include "global.h"
+
 #ifndef GUARD_RANDOM_H
 #define GUARD_RANDOM_H
 
@@ -23,6 +25,8 @@
 * always 32 bits and Random()/Random2() are just wrappers in that mode. It is
 * also available in non-HQ mode for consistency.
 */
+// Moved this up @Tracey
+u16 RandRange(u16 min, u16 max);
 
 #if HQ_RANDOM == TRUE
 struct Sfc32State {

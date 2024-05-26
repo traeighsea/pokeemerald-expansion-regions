@@ -1072,3 +1072,4 @@ EventScript_VsSeekerChargingDone::
 	.include "data/hoenn/text/frontier_brain.inc"
 	.include "data/hoenn/text/save.inc"
 	.include "data/hoenn/text/birch_speech.inc"
+    .include "data/scripts/dexnav.inc"

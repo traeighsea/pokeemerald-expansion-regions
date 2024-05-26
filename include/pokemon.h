@@ -1,12 +1,12 @@
 #ifndef GUARD_POKEMON_H
 #define GUARD_POKEMON_H
-
+#include "gba/types.h"
 #include "sprite.h"
 #include "constants/items.h"
 #include "constants/region_map_sections.h"
 #include "constants/map_groups.h"
 #include "contest_effect.h"
-
+#include "constants/global.h"
 #define GET_BASE_SPECIES_ID(speciesId) (GetFormSpeciesId(speciesId, 0))
 #define FORM_SPECIES_END (0xffff)
 
@@ -217,13 +217,20 @@ struct PokemonSubstruct3
     u32 modernFatefulEncounter:1;
 };
 
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 // Number of bytes in the largest Pokémon substruct.
 // They are assumed to be the same size, and will be padded to
 // the largest size by the union.
 // By default they are all 12 bytes.
-#define NUM_SUBSTRUCT_BYTES (max(sizeof(struct PokemonSubstruct0),     \
-                             max(sizeof(struct PokemonSubstruct1),     \
-                             max(sizeof(struct PokemonSubstruct2),     \
+#define NUM_SUBSTRUCT_BYTES (MAX(sizeof(struct PokemonSubstruct0),     \
+                             MAX(sizeof(struct PokemonSubstruct1),     \
+                             MAX(sizeof(struct PokemonSubstruct2),     \
                                  sizeof(struct PokemonSubstruct3)))))
 
 union PokemonSubstruct
@@ -239,7 +246,7 @@ struct BoxPokemon
 {
     u32 personality;
     u32 otId;
-    u8 nickname[min(10, POKEMON_NAME_LENGTH)];
+    u8 nickname[MIN(10, POKEMON_NAME_LENGTH)];
     u8 language:3;
     u8 hiddenNatureModifier:5; // 31 natures.
     u8 isBadEgg:1;
@@ -445,7 +452,10 @@ struct SpeciesInfo /*0x8C*/
  /* 0x88 */ const struct Evolution *evolutions;
  /* 0x84 */ const u16 *formSpeciesIdTable;
  /* 0x84 */ const struct FormChange *formChangeTable;
-};
+            #ifndef BATTLE_ENGINE
+ /* 0x1A */ u8 abilityHidden;
+            #endif
+}; /* size = 28 */
 
 struct MoveInfo
 {
