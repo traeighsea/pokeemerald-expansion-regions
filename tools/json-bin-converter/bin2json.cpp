@@ -74,12 +74,12 @@ nlohmann::ordered_json convertMapgridBinToJson(Version version, const std::vecto
 
     uint16_t temp_var{0};
     unsigned bytes_loaded{0};
+    const unsigned bytes_needed{2};
     for (auto byte: buffer) {
-        temp_var = temp_var << sizeInBits(byte);
-        temp_var |= static_cast<uint16_t>(byte);
+        temp_var = temp_var << 8 | static_cast<uint16_t>(byte);
         bytes_loaded++;
 
-        if (bytes_loaded == 2) {
+        if (bytes_loaded == bytes_needed) {
             nlohmann::ordered_json mapgrid = nlohmann::ordered_json::object();
             for (auto mask: info.mapgrid_masks) {
                 uint16_t val = temp_var & mask.second;

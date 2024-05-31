@@ -21,9 +21,9 @@ std::string intToHexStd(T num)
 
 /// Uses some C++ shenanigans to get the num of bits represented in the variable
 template <typename T>
-constexpr std::size_t sizeInBits(T var) noexcept
+constexpr unsigned sizeInBits(T var) noexcept
 {
-    return sizeof(typeid(T).name()) * CHAR_BIT;
+    return sizeof(typeid(T));
 }
 
 /// Keep bitshifting to the left until we get to the first set bit
@@ -32,7 +32,7 @@ constexpr unsigned firstBitOffset(T var) noexcept
 {
     unsigned max_size = sizeInBits(var);
     unsigned first_bit = 0;
-    while (first_bit < max_size && (var | 0x1) != 1) {
+    while (first_bit < max_size && ((var & 0x1) != 1)) {
         var = var >> 1;
         first_bit++;
     }
