@@ -65,12 +65,12 @@ nlohmann::ordered_json convertMapgridBinToJson(Version version, const std::vecto
     const MapGridInfo& info = version == Version::Custom ? CustomMapGridInfo : MapGridInfoAll;
 
     json["mapgridSizeInBits"] = sizeInBits(info.mapgrid_masks.begin()->second);
-    json["mapgridMasks"] = nlohmann::json::object();
+    json["mapgridMasks"] = nlohmann::ordered_json::object();
     for (auto masks: info.mapgrid_masks) {
         json["mapgridMasks"][masks.first] = intToHexStd(masks.second);
     }
 
-    json["mapgrid"] = nlohmann::json::array();
+    json["mapgrid"] = nlohmann::ordered_json::array();
 
     uint16_t temp_var{0};
     unsigned bytes_loaded{0};
@@ -80,7 +80,7 @@ nlohmann::ordered_json convertMapgridBinToJson(Version version, const std::vecto
         bytes_loaded++;
 
         if (bytes_loaded == 2) {
-            nlohmann::ordered_json mapgrid = nlohmann::json::object();
+            nlohmann::ordered_json mapgrid = nlohmann::ordered_json::object();
             for (auto mask: info.mapgrid_masks) {
                 uint16_t val = temp_var & mask.second;
                 val = val >> firstBitOffset(val);
@@ -108,23 +108,31 @@ nlohmann::ordered_json convertMetatilesBinToJson(Version version, const std::vec
     json["numPals"] = info.num_pals;
     json["numTilesInMetatile"] = info.num_tiles_in_metatile;
 
-    json["metatiles"]["tiles"] = nlohmann::json::array();
+    json["metatiles"] = nlohmann::ordered_json::array();
 
     uint16_t temp_var{0};
     unsigned bytes_loaded{0};
+    nlohmann::ordered_json tiles = nlohmann::ordered_json::object();
+    tiles["tiles"] = nlohmann::ordered_json::array();
     for (auto byte: buffer) {
         temp_var = temp_var << sizeInBits(byte);
         temp_var |= static_cast<uint16_t>(byte);
         bytes_loaded++;
 
         if (bytes_loaded == 2) {
-            nlohmann::ordered_json tiles = nlohmann::json::object();
+            nlohmann::ordered_json tile = nlohmann::ordered_json::object();
             for (auto mask: info.tiles_masks) {
                 uint16_t val = temp_var & mask.second;
                 val = val >> firstBitOffset(val);
-                tiles[mask.first] = val;
+                tile[mask.first] = val;
             }
-            json["metatiles"]["tiles"].push_back(tiles);
+            tiles["tiles"].push_back(tile);
+
+            // After filling tiles for that metatile, we add it to the list and clear it
+            if (tiles["tiles"].size() == info.num_tiles_in_metatile) {
+                json["metatiles"].push_back(tiles);
+                tiles["tiles"].clear();
+            }
 
             // Reset
             bytes_loaded = 0;
@@ -137,6 +145,7 @@ nlohmann::ordered_json convertMetatilesBinToJson(Version version, const std::vec
 
 nlohmann::ordered_json convertMetatileAttributesBinToJson(Version version, const std::vector<std::byte>& buffer) {
     nlohmann::ordered_json json;
+    // TODO(@traeighsea): There's issues setting this var the same way with 2 separate uint sized types
     MetatileAttributesInfo info = version == Version::Custom           ? CustomMetatileAttributesInfo : 
                                   version == Version::FireRedLeafGreen ? MetatileAttributesInfoRSE : 
                                                                          MetatileAttributesInfoRSE;
@@ -144,22 +153,24 @@ nlohmann::ordered_json convertMetatileAttributesBinToJson(Version version, const
     json["numMetatiles"] = info.num_metatiles;
     json["attributeSizeInBits"] = sizeInBits(info.attribute_masks);
 
-    json["attributeMasks"] = nlohmann::json::object();
+    json["attributeMasks"] = nlohmann::ordered_json::object();
     for (auto masks: info.attribute_masks) {
         json["attributeMasks"][masks.first] = intToHexStd(masks.second);
     }
 
-    json["metatileAttributes"] = nlohmann::json::array();
+    json["metatileAttributes"] = nlohmann::ordered_json::array();
 
     uint16_t temp_var{0};
     unsigned bytes_loaded{0};
     for (auto byte: buffer) {
         temp_var = temp_var << sizeInBits(byte);
+        // TODO(@traeighsea): Will need to use uint32 when using FRLG
         temp_var |= static_cast<uint16_t>(byte);
         bytes_loaded++;
 
+        // TODO(@traeighsea): Will need to use 4 when using FRLG
         if (bytes_loaded == 2) {
-            nlohmann::ordered_json attributes = nlohmann::json::object();
+            nlohmann::ordered_json attributes = nlohmann::ordered_json::object();
             for (auto mask: info.attribute_masks) {
                 uint16_t val = temp_var & mask.second;
                 val = val >> firstBitOffset(val);
@@ -181,14 +192,14 @@ int main(int argc, char *argv[])
     if (argc < 3) {
         FATAL_ERROR(Usage);
     }
-    
-    UsageMode mode = StrToMode(argv[1]);
-    if (mode == UsageMode::Error) {
+
+    Version version = StrToVersion(argv[1]);
+    if (version == Version::Error) {
         FATAL_ERROR(Usage);
     }
-
-    Version version = StrToVersion(argv[2]);
-    if (version == Version::Error) {
+    
+    UsageMode mode = StrToMode(argv[2]);
+    if (mode == UsageMode::Error) {
         FATAL_ERROR(Usage);
     }
 
