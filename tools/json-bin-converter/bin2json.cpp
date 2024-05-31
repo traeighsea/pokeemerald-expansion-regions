@@ -8,66 +8,19 @@
 ///
 /// The version will determine how to pack the data. For the version the options are rse, frlg, custom
 ///   For the custom "version" you will have to edit this code to add your own packer which you can find 
-///   in the section down below. I'd suggest committing this to your project :)
+///   in the custominfos.h file. I'd suggest committing this to your project :)
 
 #include "jsonbinconverter.h"
+#include "commonutils.h"
+#include "datainfos.h"
+#include "custominfos.h"
 
 #include <string>
 #include <vector>
 #include <map>
+#include <iostream>
+#include <filesystem>
 #include <nlohmann/json.hpp>
-
-struct MapGridInfo {
-   std::map<std::string, uint16_t> mapgrid_masks{};
-};
-
-struct MetatilesInfo {
-   unsigned num_metatiles{512};
-   unsigned num_tiles{512};
-   unsigned num_pals{6};
-   unsigned num_tiles_in_metatile{8};
-   std::map<std::string, uint16_t> tiles_masks{};
-};
-
-/// The type should be uint16_t, or uint32_t depending on RSE or FRLG respectively for size 
-///    of the attribute
-template<class T>
-struct MetatileAttributesInfo {
-   unsigned num_metatiles{0};
-   std::map<std::string, T> attribute_masks{};
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///// IF USING CUSTOM, FILL IN YOUR DATA PACKERS HERE /////////////////////////////////////////////
-const MapGridInfo CustomMapGridInfo = {
-   .mapgrid_masks = {
-      {"metatileId", 0x03FF},
-      {"collision",  0x0C00},
-      {"elevation",  0xF000}
-   }
-};
-const MetatilesInfo CustomMetatilesInfo = {
-   .num_metatiles = 512,
-   .num_tiles = 512,
-   .num_pals = 6,
-   .num_tiles_in_metatile = 8,
-   .tiles_masks{
-      {"tileId",  0x03FF},
-      {"xflip",   0x0400},
-      {"yflip",   0x0800},
-      {"palette", 0xF000}
-   }
-};
-const MetatileAttributesInfo<uint16_t> CustomMetatileAttributesDataPacker = {
-   .num_metatiles = 512,
-   .attribute_masks = {
-      {"behavior", 0x00FF},
-      {"layer",    0xF000},
-      {"unused",   0x0F00}
-   }
-};
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 constexpr auto Usage{"USAGE: bin2json <version: rse|frlg> <mode: mapgrid|metatiles|metatile_attributes> ...\n"};
 
@@ -107,86 +60,120 @@ Version StrToVersion(const char* str) {
     return Version::Error;
 }
 
-const MapGridInfo MapGridInfoAll{
-   .mapgrid_masks = {
-      {"metatileId", 0x03FF},
-      {"collision",  0x0C00},
-      {"elevation",  0xF000}
-   }
-};
+nlohmann::ordered_json convertMapgridBinToJson(Version version, const std::vector<std::byte>& buffer) {
+    nlohmann::ordered_json json;
+    const MapGridInfo& info = version == Version::Custom ? CustomMapGridInfo : MapGridInfoAll;
 
-const MetatilesInfo MetatilesInfoRSE{
-   .num_metatiles = 512,
-   .num_tiles = 512,
-   .num_pals = 6,
-   .num_tiles_in_metatile = 8,
-   .tiles_masks{
-      {"tileId",  0x03FF},
-      {"xflip",   0x0400},
-      {"yflip",   0x0800},
-      {"palette", 0xF000}
-   }
-};
-const MetatilesInfo MetatilesInfoFRLG{
-   .num_metatiles = 640,
-   .num_tiles = 640,
-   .num_pals = 7,
-   .num_tiles_in_metatile = 8,
-   .tiles_masks{
-      {"tileId",  0x03FF},
-      {"xflip",   0x0400},
-      {"yflip",   0x0800},
-      {"palette", 0xF000}
-   }
-};
-
-const MetatileAttributesInfo<uint16_t> MetatileAttributesInfoRSE{
-   .num_metatiles = 512,
-   .attribute_masks = {
-      {"behavior", 0x00FF},
-      {"layer",    0xF000},
-      {"unused",   0x0F00}
-   }
-};
-const MetatileAttributesInfo<uint32_t> MetatileAttributesInfoFRLG{
-   .num_metatiles = 640,
-   .attribute_masks = {
-      {"behavior",  0x000001FF},
-      {"terrain",   0x00003E00},
-      {"encounter", 0x07000000},
-      {"layer",     0x60000000},
-      {"unused",    0x98FFC000},
-   }
-};
-
-void convertMapgridBinToJson(Version version, const std::vector<std::string>& file_names) {
-    for(auto file: file_names) {
-        // Deserialize bin
-
-        // Process
-
-        // Serialize as json
+    json["mapgridSizeInBits"] = sizeInBits(info.mapgrid_masks.begin()->second);
+    json["mapgridMasks"] = nlohmann::json::object();
+    for (auto masks: info.mapgrid_masks) {
+        json["mapgridMasks"][masks.first] = intToHexStd(masks.second);
     }
+
+    json["mapgrid"] = nlohmann::json::array();
+
+    uint16_t temp_var{0};
+    unsigned bytes_loaded{0};
+    for (auto byte: buffer) {
+        temp_var = temp_var << sizeInBits(byte);
+        temp_var |= static_cast<uint16_t>(byte);
+        bytes_loaded++;
+
+        if (bytes_loaded == 2) {
+            nlohmann::ordered_json mapgrid = nlohmann::json::object();
+            for (auto mask: info.mapgrid_masks) {
+                uint16_t val = temp_var & mask.second;
+                val = val >> firstBitOffset(val);
+                mapgrid[mask.first] = val;
+            }
+            json["mapgrid"].push_back(mapgrid);
+
+            // Reset
+            bytes_loaded = 0;
+            temp_var = 0;
+        }
+    }
+
+    return json;
 }
 
-void convertMetatilesBinToJson(Version version, const std::vector<std::string>& file_names) {
-    for(auto file: file_names) {
-        // Deserialize bin
+nlohmann::ordered_json convertMetatilesBinToJson(Version version, const std::vector<std::byte>& buffer) {
+    nlohmann::ordered_json json;
+    const MetatilesInfo& info = version == Version::Custom           ? CustomMetatilesInfo : 
+                                version == Version::FireRedLeafGreen ? MetatilesInfoFRLG : 
+                                                                       MetatilesInfoRSE;
 
-        // Process
-        
-        // Serialize as json
+    json["numMetatiles"] = info.num_metatiles;
+    json["numTiles"] = info.num_tiles;
+    json["numPals"] = info.num_pals;
+    json["numTilesInMetatile"] = info.num_tiles_in_metatile;
+
+    json["metatiles"]["tiles"] = nlohmann::json::array();
+
+    uint16_t temp_var{0};
+    unsigned bytes_loaded{0};
+    for (auto byte: buffer) {
+        temp_var = temp_var << sizeInBits(byte);
+        temp_var |= static_cast<uint16_t>(byte);
+        bytes_loaded++;
+
+        if (bytes_loaded == 2) {
+            nlohmann::ordered_json tiles = nlohmann::json::object();
+            for (auto mask: info.tiles_masks) {
+                uint16_t val = temp_var & mask.second;
+                val = val >> firstBitOffset(val);
+                tiles[mask.first] = val;
+            }
+            json["metatiles"]["tiles"].push_back(tiles);
+
+            // Reset
+            bytes_loaded = 0;
+            temp_var = 0;
+        }
     }
+
+    return json;
 }
 
-void convertMetatileAttributesBinToJson(Version version, const std::vector<std::string>& file_names) {
-    for(auto file: file_names) {
-        // Deserialize bin
+nlohmann::ordered_json convertMetatileAttributesBinToJson(Version version, const std::vector<std::byte>& buffer) {
+    nlohmann::ordered_json json;
+    MetatileAttributesInfo info = version == Version::Custom           ? CustomMetatileAttributesInfo : 
+                                  version == Version::FireRedLeafGreen ? MetatileAttributesInfoRSE : 
+                                                                         MetatileAttributesInfoRSE;
 
-        // Process
-        
-        // Serialize as json
+    json["numMetatiles"] = info.num_metatiles;
+    json["attributeSizeInBits"] = sizeInBits(info.attribute_masks);
+
+    json["attributeMasks"] = nlohmann::json::object();
+    for (auto masks: info.attribute_masks) {
+        json["attributeMasks"][masks.first] = intToHexStd(masks.second);
     }
+
+    json["metatileAttributes"] = nlohmann::json::array();
+
+    uint16_t temp_var{0};
+    unsigned bytes_loaded{0};
+    for (auto byte: buffer) {
+        temp_var = temp_var << sizeInBits(byte);
+        temp_var |= static_cast<uint16_t>(byte);
+        bytes_loaded++;
+
+        if (bytes_loaded == 2) {
+            nlohmann::ordered_json attributes = nlohmann::json::object();
+            for (auto mask: info.attribute_masks) {
+                uint16_t val = temp_var & mask.second;
+                val = val >> firstBitOffset(val);
+                attributes[mask.first] = val;
+            }
+            json["metatileAttributes"].push_back(attributes);
+
+            // Reset
+            bytes_loaded = 0;
+            temp_var = 0;
+        }
+    }
+
+    return json;
 }
 
 int main(int argc, char *argv[])
@@ -210,19 +197,36 @@ int main(int argc, char *argv[])
         file_names.emplace_back(argv[i]);
     }
 
-    switch(mode) {
-        case UsageMode::Mapgrid:
-            convertMapgridBinToJson(version, file_names);
+    for(auto file_name: file_names) {        
+        // Deserialize bin
+        std::filesystem::path file_path = file_name;
+        std::vector<std::byte> buffer = readBinFileIntoBuffer(file_path);
+        if (buffer.empty()) {
+            std::cout << "Warning - Issue reading file:" << file_path << std::endl;
             break;
-        case UsageMode::Metatiles:
-            convertMetatilesBinToJson(version, file_names);
-            break;
-        case UsageMode::MetatileAttributes:
-            convertMetatileAttributesBinToJson(version, file_names);
-            break;
-        case UsageMode::Error:
-            FATAL_ERROR(Usage);
-            break;
+        }
+
+        // Process
+        nlohmann::ordered_json json;
+        switch(mode) {
+            case UsageMode::Mapgrid:
+                json = convertMapgridBinToJson(version, buffer);
+                break;
+            case UsageMode::Metatiles:
+                json = convertMetatilesBinToJson(version, buffer);
+                break;
+            case UsageMode::MetatileAttributes:
+                json = convertMetatileAttributesBinToJson(version, buffer);
+                break;
+            case UsageMode::Error:
+                FATAL_ERROR(Usage);
+                break;
+        }
+
+        // Serialize as json
+        file_path.replace_extension("json");
+        std::ofstream output_json_file(file_path);
+        output_json_file << json.dump(2);
     }
 
     return 0;
