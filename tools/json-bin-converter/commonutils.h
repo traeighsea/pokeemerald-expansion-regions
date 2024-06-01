@@ -26,7 +26,7 @@ constexpr unsigned sizeInBits(T var) noexcept
     return sizeof(typeid(T));
 }
 
-/// Keep bitshifting to the left until we get to the first set bit
+/// Keep bitshifting to the right until we get to the first set bit
 template <typename T>
 constexpr unsigned firstBitOffset(T var) noexcept
 {
