@@ -24,6 +24,9 @@ template<class T>
 struct MetatileAttributesInfo {
    unsigned num_metatiles{0};
    std::map<std::string, T> attribute_masks{};
+
+   // We're just doing a check to make sure we were created with an int pre c++20
+   static_assert(std::is_integral_v<T>);
 };
 
 

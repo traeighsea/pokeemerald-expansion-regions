@@ -1,4 +1,4 @@
-/// bin2json takes in a usage mode of either mapgrid, metatiles, or metatile_attributes, then a version,
+/// bin2json takes in a version followed by a usage mode of either mapgrid, metatiles, or metatile_attributes,
 ///     followed by a list of bin files. The json files will be output to the same paths as passed in except
 ///     the extension will change. The mode to use are detailed below:
 /// mapgrid:             used for data/layouts/*/border.bin and data/layouts/*/map.bin
