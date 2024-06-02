@@ -1,4 +1,3 @@
-// bin2json.cpp
 /// bin2json takes in a usage mode of either mapgrid, metatiles, or metatile_attributes, then a version,
 ///     followed by a list of bin files. The json files will be output to the same paths as passed in except
 ///     the extension will change. The mode to use are detailed below:
@@ -74,7 +73,7 @@ nlohmann::ordered_json convertMapgridBinToJson(Version version, const std::vecto
 
     uint16_t temp_var{0};
     unsigned bytes_loaded{0};
-    const unsigned bytes_needed{2};
+    const unsigned bytes_needed{sizeInBits(temp_var) / 8};
     for (auto byte: buffer) {
         temp_var = temp_var >> 8 | static_cast<uint16_t>(byte) << 8;
         bytes_loaded++;
@@ -113,13 +112,14 @@ nlohmann::ordered_json convertMetatilesBinToJson(Version version, const std::vec
 
     uint16_t temp_var{0};
     unsigned bytes_loaded{0};
+    const unsigned bytes_needed{sizeInBits(temp_var) / 8};
     nlohmann::ordered_json tiles = nlohmann::ordered_json::object();
     tiles["tiles"] = nlohmann::ordered_json::array();
     for (auto byte: buffer) {
         temp_var = temp_var >> 8 | static_cast<uint16_t>(byte) << 8;
         bytes_loaded++;
 
-        if (bytes_loaded == 2) {
+        if (bytes_loaded == bytes_needed) {
             nlohmann::ordered_json tile = nlohmann::ordered_json::object();
             for (auto mask: info.tiles_masks) {
                 // Mask the full variable to isolate the var we want, then bit shift the mask until we hit the
@@ -144,12 +144,9 @@ nlohmann::ordered_json convertMetatilesBinToJson(Version version, const std::vec
     return json;
 }
 
-nlohmann::ordered_json convertMetatileAttributesBinToJson(Version version, const std::vector<std::byte>& buffer) {
+template<class T>
+nlohmann::ordered_json convertMetatileAttributesBinToJson(const MetatileAttributesInfo<T>& info, const std::vector<std::byte>& buffer) {
     nlohmann::ordered_json json;
-    // TODO(@traeighsea): There's issues setting this var the same way with 2 separate uint sized types
-    MetatileAttributesInfo info = version == Version::Custom           ? CustomMetatileAttributesInfo : 
-                                  version == Version::FireRedLeafGreen ? MetatileAttributesInfoRSE : 
-                                                                         MetatileAttributesInfoRSE;
 
     json["numMetatiles"] = info.num_metatiles;
     json["attributeSizeInBits"] = sizeInBits(info.attribute_masks);
@@ -161,21 +158,20 @@ nlohmann::ordered_json convertMetatileAttributesBinToJson(Version version, const
 
     json["metatileAttributes"] = nlohmann::ordered_json::array();
 
-    uint16_t temp_var{0};
+    T temp_var{0};
     unsigned bytes_loaded{0};
+    unsigned bytes_needed{sizeInBits(temp_var) / 8};
     for (auto byte: buffer) {
         temp_var = temp_var << sizeInBits(byte);
-        // TODO(@traeighsea): Will need to use uint32 when using FRLG
-        temp_var = temp_var >> 8 | static_cast<uint16_t>(byte) << 8;
+        temp_var = temp_var >> 8 | static_cast<T>(byte) << 8;
         bytes_loaded++;
 
-        // TODO(@traeighsea): Will need to use 4 when using FRLG
-        if (bytes_loaded == 2) {
+        if (bytes_loaded == bytes_needed) {
             nlohmann::ordered_json attributes = nlohmann::ordered_json::object();
             for (auto mask: info.attribute_masks) {
                 // Mask the full variable to isolate the var we want, then bit shift the mask until we hit the
                 //  start of our mask
-                uint16_t val = (temp_var & mask.second) >> firstBitOffset(mask.second);
+                T val = (temp_var & mask.second) >> firstBitOffset(mask.second);
                 attributes[mask.first] = val;
             }
             json["metatileAttributes"].push_back(attributes);
@@ -229,7 +225,15 @@ int main(int argc, char *argv[])
                 json = convertMetatilesBinToJson(version, buffer);
                 break;
             case UsageMode::MetatileAttributes:
-                json = convertMetatileAttributesBinToJson(version, buffer);
+                if (version == Version::RubySapphireEmerald) {
+                    json = convertMetatileAttributesBinToJson(MetatileAttributesInfoRSE, buffer);
+                } else if (version == Version::FireRedLeafGreen) {
+                    json = convertMetatileAttributesBinToJson<>(MetatileAttributesInfoFRLG, buffer);
+                } else if (version == Version::Custom) {
+                    json = convertMetatileAttributesBinToJson(CustomMetatileAttributesInfo, buffer);
+                } else {
+                    FATAL_ERROR(Usage);
+                }
                 break;
             case UsageMode::Error:
                 FATAL_ERROR(Usage);
