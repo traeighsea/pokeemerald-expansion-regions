@@ -27,9 +27,9 @@ $(LAYOUTS_DIR)/%/map.bin: $(LAYOUTS_DIR)/%/map.json
 	$(JSON2BIN) mapgrid $<
 endif
 
-ifeq ($(OPTION_TILESETS_METATILES_USE_JSON),true)
-TILESETS_METATILES_JSONS := $(wildcard $(DATA_ASM_SUBDIR)/tilesets/*/metatiles.json)
-TILESETS_METATILE_ATTRIBUTES_JSONS := $(wildcard $(DATA_ASM_SUBDIR)/tilesets/*/metatile_attributes.json)
+ifeq ($(OPTION_TILESET_METATILES_USE_JSON),true)
+TILESETS_METATILES_JSONS := $(wildcard $(DATA_ASM_SUBDIR)/tilesets/primary/*/metatiles.json) $(wildcard $(DATA_ASM_SUBDIR)/tilesets/secondary/*/metatiles.json)
+TILESETS_METATILE_ATTRIBUTES_JSONS := $(wildcard $(DATA_ASM_SUBDIR)/tilesets/primary/*/metatile_attributes.json) $(wildcard $(DATA_ASM_SUBDIR)/tilesets/secondary/*/metatile_attributes.json)
 
 metatile-bins-generated: $(TILESETS_METATILES_BINS) $(TILESETS_METATILE_ATTRIBUTES_BINS)
 %/metatiles.bin: %/metatiles.json
