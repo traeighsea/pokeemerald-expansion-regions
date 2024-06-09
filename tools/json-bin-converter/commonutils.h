@@ -19,6 +19,17 @@ std::string intToHexStd(T num)
     return stream.str();
 }
 
+/// Converts a string that contains hex values to an int
+template <typename T>
+T hexToInt(std::string str)
+{
+    T retVal;
+    std::stringstream stream;
+    stream << std::hex << str;
+    stream >> retVal;
+    return retVal;
+}
+
 /// Uses some C++ shenanigans to get the num of bits represented in the variable
 template <typename T>
 constexpr unsigned sizeInBits(T var) noexcept
