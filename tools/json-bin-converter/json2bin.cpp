@@ -107,11 +107,11 @@ void convertMetatilesJsonToBin(const std::vector<std::string>& file_names) {
         //  gets bit shifted to the start of the mask, and then finally masked to make sure we don't overflow
         //  into another masked section
         for (auto metatile: metatiles_arr) {
+            if (metatile["tiles"].size() != metatiles_json["numTilesInMetatile"]) {
+                fprintf(stderr, "Warning: Num tiles in metatile array differ to numTilesInMetatile for file %s.\n", path.c_str());
+            }
             for (auto tile_data: metatile["tiles"]) {
                 uint16_t temp_tile{0};
-                if (metatiles_arr.size() != metatiles_json["numTilesInMetatile"]) {
-                    fprintf(stderr, "Warning: Num tiles in metatile array differ to numTilesInMetatile for file %s.\n", path.c_str());
-                }
                 for (const auto& [key, value]: masks) {
                     temp_tile |= static_cast<uint16_t>(tile_data[key].template get<uint16_t>() << firstBitOffset(value) & value);
                 }
