@@ -18,8 +18,8 @@ struct MetatilesInfo {
    std::map<std::string, uint16_t> tiles_masks{};
 };
 
-/// The type should be uint16_t, or uint32_t depending on RSE or FRLG respectively for size 
-///    of the attribute
+/// The type should be uint16_t or uint32_t depending on RSE or FRLG respectively for size 
+///    of the attribute. Though this should also support uint8_t and uint64_t
 template<class T>
 struct MetatileAttributesInfo {
    unsigned num_metatiles{0};

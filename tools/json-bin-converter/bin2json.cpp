@@ -108,6 +108,11 @@ nlohmann::ordered_json convertMetatilesBinToJson(Version version, const std::vec
     json["numPals"] = info.num_pals;
     json["numTilesInMetatile"] = info.num_tiles_in_metatile;
 
+    json["tilesMasks"] = nlohmann::ordered_json::object();
+    for (auto masks: info.tiles_masks) {
+        json["tilesMasks"][masks.first] = intToHexStd(masks.second);
+    }
+
     json["metatiles"] = nlohmann::ordered_json::array();
 
     uint16_t temp_var{0};
@@ -156,7 +161,7 @@ nlohmann::ordered_json convertMetatileAttributesBinToJson(const MetatileAttribut
         json["attributeMasks"][masks.first] = intToHexStd(masks.second);
     }
 
-    json["metatileAttributes"] = nlohmann::ordered_json::array();
+    json["metatiles"] = nlohmann::ordered_json::array();
 
     T temp_var{0};
     unsigned bytes_loaded{0};
@@ -172,9 +177,9 @@ nlohmann::ordered_json convertMetatileAttributesBinToJson(const MetatileAttribut
                 // Mask the full variable to isolate the var we want, then bit shift the mask until we hit the
                 //  start of our mask
                 T val = (temp_var & mask.second) >> firstBitOffset(mask.second);
-                attributes[mask.first] = val;
+                attributes["attributes"][mask.first] = val;
             }
-            json["metatileAttributes"].push_back(attributes);
+            json["metatiles"].push_back(attributes);
 
             // Reset
             bytes_loaded = 0;
