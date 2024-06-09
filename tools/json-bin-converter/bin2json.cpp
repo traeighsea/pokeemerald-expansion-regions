@@ -167,8 +167,8 @@ nlohmann::ordered_json convertMetatileAttributesBinToJson(const MetatileAttribut
     unsigned bytes_loaded{0};
     unsigned bytes_needed{sizeInBits(temp_var) / 8};
     for (auto byte: buffer) {
-        temp_var = temp_var << sizeInBits(byte);
-        temp_var = temp_var >> 8 | static_cast<T>(byte) << 8;
+        // Pack bytes little-endian
+        temp_var = temp_var >> 8 | (static_cast<T>(byte) << (sizeInBits(temp_var) - 8));
         bytes_loaded++;
 
         if (bytes_loaded == bytes_needed) {
