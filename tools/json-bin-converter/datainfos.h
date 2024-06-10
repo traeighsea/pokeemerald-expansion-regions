@@ -11,10 +11,13 @@ struct MapGridInfo {
 };
 
 struct MetatilesInfo {
-   unsigned num_metatiles{512};
-   unsigned num_tiles{512};
-   unsigned num_pals{6};
-   unsigned num_tiles_in_metatile{8};
+   unsigned num_metatiles_in_primary{0};
+   unsigned num_metatiles_in_secondary{0};
+   unsigned num_tiles_in_primary{0};
+   unsigned num_tiles_in_secondary{0};
+   unsigned num_pals_in_primary{0};
+   unsigned num_pals_in_secondary{0};
+   unsigned num_tiles_in_metatile{0};
    std::map<std::string, uint16_t> tiles_masks{};
 };
 
@@ -22,7 +25,9 @@ struct MetatilesInfo {
 ///    of the attribute. Though this should also support uint8_t and uint64_t
 template<class T>
 struct MetatileAttributesInfo {
-   unsigned num_metatiles{0};
+   unsigned num_metatiles_in_primary{0};
+   unsigned num_metatiles_in_secondary{0};
+
    std::map<std::string, T> attribute_masks{};
 
    // We're just doing a check to make sure we were created with an int pre c++20
@@ -39,9 +44,12 @@ const MapGridInfo MapGridInfoAll{
 };
 
 const MetatilesInfo MetatilesInfoRSE{
-   .num_metatiles = 512,
-   .num_tiles = 512,
-   .num_pals = 6,
+   .num_metatiles_in_primary = 512,
+   .num_metatiles_in_secondary = 512,
+   .num_tiles_in_primary = 512,
+   .num_tiles_in_secondary = 512,
+   .num_pals_in_primary = 6,
+   .num_pals_in_secondary = 7,
    .num_tiles_in_metatile = 8,
    .tiles_masks{
       {"tileId",  0x03FF},
@@ -51,9 +59,12 @@ const MetatilesInfo MetatilesInfoRSE{
    }
 };
 const MetatilesInfo MetatilesInfoFRLG{
-   .num_metatiles = 640,
-   .num_tiles = 640,
-   .num_pals = 7,
+   .num_metatiles_in_primary = 640,
+   .num_metatiles_in_secondary = 512,
+   .num_tiles_in_primary = 640,
+   .num_tiles_in_secondary = 384,
+   .num_pals_in_primary = 7,
+   .num_pals_in_secondary = 6,
    .num_tiles_in_metatile = 8,
    .tiles_masks{
       {"tileId",  0x03FF},
@@ -64,7 +75,8 @@ const MetatilesInfo MetatilesInfoFRLG{
 };
 
 const MetatileAttributesInfo<uint16_t> MetatileAttributesInfoRSE{
-   .num_metatiles = 512,
+   .num_metatiles_in_primary = 512,
+   .num_metatiles_in_secondary = 512,
    .attribute_masks = {
       {"behavior", 0x00FF},
       {"layer",    0xF000},
@@ -72,7 +84,8 @@ const MetatileAttributesInfo<uint16_t> MetatileAttributesInfoRSE{
    }
 };
 const MetatileAttributesInfo<uint32_t> MetatileAttributesInfoFRLG{
-   .num_metatiles = 640,
+   .num_metatiles_in_primary = 512,
+   .num_metatiles_in_secondary = 512,
    .attribute_masks = {
       {"behavior",  0x000001FF},
       {"terrain",   0x00003E00},

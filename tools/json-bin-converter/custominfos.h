@@ -15,9 +15,12 @@ const MapGridInfo CustomMapGridInfo = {
    }
 };
 const MetatilesInfo CustomMetatilesInfo = {
-   .num_metatiles = 512,
-   .num_tiles = 512,
-   .num_pals = 6,
+   .num_metatiles_in_primary = 512,
+   .num_metatiles_in_secondary = 512,
+   .num_tiles_in_primary = 512,
+   .num_tiles_in_secondary = 512,
+   .num_pals_in_primary = 6,
+   .num_pals_in_secondary = 7,
    .num_tiles_in_metatile = 8,
    .tiles_masks{
       {"tileId",  0x03FF},
@@ -27,7 +30,8 @@ const MetatilesInfo CustomMetatilesInfo = {
    }
 };
 const MetatileAttributesInfo<uint16_t> CustomMetatileAttributesInfo = {
-   .num_metatiles = 512,
+   .num_metatiles_in_primary = 512,
+   .num_metatiles_in_secondary = 512,
    .attribute_masks = {
       {"behavior", 0x00FF},
       {"layer",    0xF000},

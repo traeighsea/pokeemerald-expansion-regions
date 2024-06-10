@@ -97,15 +97,15 @@ nlohmann::ordered_json convertMapgridBinToJson(Version version, const std::vecto
     return json;
 }
 
-nlohmann::ordered_json convertMetatilesBinToJson(Version version, const std::vector<std::byte>& buffer) {
+nlohmann::ordered_json convertMetatilesBinToJson(Version version, bool is_secondary, const std::vector<std::byte>& buffer) {
     nlohmann::ordered_json json;
     const MetatilesInfo& info = version == Version::Custom           ? CustomMetatilesInfo : 
                                 version == Version::FireRedLeafGreen ? MetatilesInfoFRLG : 
                                                                        MetatilesInfoRSE;
-
-    json["numMetatiles"] = info.num_metatiles;
-    json["numTiles"] = info.num_tiles;
-    json["numPals"] = info.num_pals;
+    
+    json["numMetatiles"] = is_secondary ? info.num_metatiles_in_secondary : info.num_metatiles_in_primary;
+    json["numTiles"] = is_secondary ? info.num_tiles_in_secondary : info.num_tiles_in_primary;
+    json["numPals"] = is_secondary ? info.num_pals_in_secondary : info.num_pals_in_primary;
     json["numTilesInMetatile"] = info.num_tiles_in_metatile;
 
     json["tilesMasks"] = nlohmann::ordered_json::object();
@@ -150,10 +150,10 @@ nlohmann::ordered_json convertMetatilesBinToJson(Version version, const std::vec
 }
 
 template<class T>
-nlohmann::ordered_json convertMetatileAttributesBinToJson(const MetatileAttributesInfo<T>& info, const std::vector<std::byte>& buffer) {
+nlohmann::ordered_json convertMetatileAttributesBinToJson(const MetatileAttributesInfo<T>& info, bool is_secondary, const std::vector<std::byte>& buffer) {
     nlohmann::ordered_json json;
 
-    json["numMetatiles"] = info.num_metatiles;
+    json["numMetatiles"] = is_secondary ? info.num_metatiles_in_secondary : info.num_metatiles_in_primary;
     json["attributeSizeInBits"] = sizeInBits(info.attribute_masks);
 
     json["attributeMasks"] = nlohmann::ordered_json::object();
@@ -211,6 +211,9 @@ int main(int argc, char *argv[])
         file_names.emplace_back(argv[i]);
     }
 
+    // If we're using metatiles or metatile attributes, we determine the secondary by if it's found in the path
+    bool is_secondary{false};
+
     for(auto file_name: file_names) {        
         // Deserialize bin
         std::filesystem::path file_path = file_name;
@@ -227,15 +230,17 @@ int main(int argc, char *argv[])
                 json = convertMapgridBinToJson(version, buffer);
                 break;
             case UsageMode::Metatiles:
-                json = convertMetatilesBinToJson(version, buffer);
+                is_secondary = filepathContainsSecondary(file_path);
+                json = convertMetatilesBinToJson(version, is_secondary, buffer);
                 break;
             case UsageMode::MetatileAttributes:
+                is_secondary = filepathContainsSecondary(file_path);
                 if (version == Version::RubySapphireEmerald) {
-                    json = convertMetatileAttributesBinToJson(MetatileAttributesInfoRSE, buffer);
+                    json = convertMetatileAttributesBinToJson(MetatileAttributesInfoRSE, is_secondary, buffer);
                 } else if (version == Version::FireRedLeafGreen) {
-                    json = convertMetatileAttributesBinToJson<>(MetatileAttributesInfoFRLG, buffer);
+                    json = convertMetatileAttributesBinToJson<>(MetatileAttributesInfoFRLG, is_secondary, buffer);
                 } else if (version == Version::Custom) {
-                    json = convertMetatileAttributesBinToJson(CustomMetatileAttributesInfo, buffer);
+                    json = convertMetatileAttributesBinToJson(CustomMetatileAttributesInfo, is_secondary, buffer);
                 } else {
                     FATAL_ERROR(Usage);
                 }

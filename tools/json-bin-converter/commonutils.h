@@ -66,4 +66,16 @@ inline std::vector<std::byte> readBinFileIntoBuffer(const std::filesystem::path&
     return buffer;
 }
 
+/// This checks the filepath to see if the keyword "secondary" is found. Users can reorganze their directories,
+///     so we don't want to assume the default of data/tilesets/secondary/* but we will assume secondary is found
+///     _somewhere_ in their path for this metatile / metatile attr path.
+inline bool filepathContainsSecondary(const std::filesystem::path& file_path) {
+    for (auto it = file_path.begin(); it != file_path.end(); ++it) {
+        if (*it == "secondary") {
+            return true;
+        }
+    }
+    return false;
+}
+
 #endif // COMMONUTILS_H
