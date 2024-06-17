@@ -40,4 +40,4 @@ endif
 # This is a migration script you can run to go from a single list to wild encounters per map dir
 .PHONY: run-separate-wild-encounters
 run-separate-wild-encounters:
-	$(SEPARATE_WILD_ENCOUNTERS) src/data/wild_encounters.json $(MAP_JSONS)
+	$(SEPARATE_WILD_ENCOUNTERS) -retainOrder src/data/wild_encounters.json $(MAP_JSONS)
