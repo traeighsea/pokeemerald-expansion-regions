@@ -40,6 +40,7 @@ $(DATA_ASM_SUBDIR)/groups.inc: $(DATA_ASM_SUBDIR)/map_groups.json
 $(DATA_ASM_SUBDIR)/connections.inc: $(DATA_ASM_SUBDIR)/groups.inc ;
 $(DATA_ASM_SUBDIR)/events.inc: $(DATA_ASM_SUBDIR)/connections.inc ;
 $(DATA_ASM_SUBDIR)/headers.inc: $(DATA_ASM_SUBDIR)/events.inc ;
+$(DATA_SRC_SUBDIR)/map_group_count.h: $(MAPS_DIR)/headers.inc ;
 include/constants/map_groups.h: $(DATA_ASM_SUBDIR)/headers.inc ;
 
 $(DATA_ASM_SUBDIR)/layouts.inc: $(DATA_ASM_SUBDIR)/layouts.json

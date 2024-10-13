@@ -1,4 +1,4 @@
-#include "config.h"
+#include "config/general.h"
 #include "config/battle.h"
 #include "config/item.h"
 #include "constants/global.h"
@@ -725,6 +725,7 @@ Common_EventScript_OutOfCenterPartyHeal::
 	playfanfare MUS_HEAL
 	waitfanfare
 	special HealPlayerParty
+	callnative UpdateFollowingPokemon
 	fadescreen FADE_FROM_BLACK
 	return
 
@@ -1069,6 +1070,7 @@ EventScript_VsSeekerChargingDone::
 	.include "data/hoenn/scripts/move_tutors.inc"
 	.include "data/hoenn/scripts/trainer_hill.inc"
 	.include "data/hoenn/scripts/test_signpost.inc"
+   .include "data/hoenn/scripts/follower.inc"
 	.include "data/hoenn/text/frontier_brain.inc"
 	.include "data/hoenn/text/save.inc"
 	.include "data/hoenn/text/birch_speech.inc"
